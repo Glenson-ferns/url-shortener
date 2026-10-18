@@ -56,8 +56,17 @@ def home():
 @app.route("/shorten", methods=["POST"])
 def shorten():
     # read the JSON body sent by the client e.g {"url" : "https://google.com"}
-        data = request.get_json()
-        long_url = data["url"]
+        data = request.get_json(silent=True)
+
+        # reject request iwth no body or url key
+        if not data or "url" not in data:
+            return {"error": 'Send JSON like {"url": "https://example.com"}'},400
+        long_url = data["url"].strip() # strip() removes spaces around the text
+
+        # if it doens't start with http:// or https://, add https://
+        if not long_url.startswith(("http://", "https://")):
+            long_url = "https://" + long_url
+
 
         # make a random code and remember which URL it belongs to
         code = generate_code()
@@ -71,7 +80,7 @@ def shorten():
 @app.route("/<code>")
 
 def go(code):
-    long_url = url.get(code)
+    long_url = find_url(code)
     if long_url is None:
         return "Not found", 404
         # goes back to original URL
